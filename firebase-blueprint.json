@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Room",
+      "description": "A multiplayer contest room",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "description": "Unique 6-character room code" },
+        "status": { "type": "string", "enum": ["waiting", "active", "finished"], "description": "Current status of the room" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the room was created" },
+        "hostId": { "type": "string", "description": "UID of the user who created the room" }
+      },
+      "required": ["code", "status", "createdAt", "hostId"]
+    },
+    "RoomPlayer": {
+      "title": "RoomPlayer",
+      "description": "A player within a room",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string", "description": "Display name of the player" },
+        "isReady": { "type": "boolean", "description": "Whether the player has finished building their team" },
+        "squad": { "type": "array", "items": { "type": "object" }, "description": "The selected 11 players" },
+        "totalPoints": { "type": "number", "description": "Total budget points used (max 85)" },
+        "score": { "type": "number", "description": "Calculated score for the leaderboard" }
+      },
+      "required": ["username", "isReady"]
+    }
+  },
+  "firestore": {
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Contest rooms"
+    },
+    "/rooms/{roomId}/players/{playerId}": {
+      "schema": "RoomPlayer",
+      "description": "Players in a specific room"
+    }
+  }
+}

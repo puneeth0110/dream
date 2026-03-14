@@ -1,0 +1,65 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: rooms
+// Document ID: auto-generated
+// Fields:
+//   - code: string (required) - 6-char unique code
+//   - status: string (required) - waiting, active, finished
+//   - createdAt: timestamp (required)
+//   - hostId: string (required) - UID of host
+//
+// Collection: rooms/{roomId}/players
+// Document ID: user UID
+// Fields:
+//   - username: string (required)
+//   - isReady: boolean (required)
+//   - squad: list (optional) - array of player objects
+//   - totalPoints: number (optional)
+//   - score: number (optional)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidRoom(data) {
+      return data.code is string && data.code.size() == 6 &&
+             data.status in ['waiting', 'active', 'finished'] &&
+             data.hostId is string;
+    }
+
+    function isValidPlayer(data) {
+      return data.username is string && data.username.size() > 0 && data.username.size() < 30 &&
+             data.isReady is bool &&
+             (!('totalPoints' in data) || (data.totalPoints is number && data.totalPoints <= 85));
+    }
+
+    match /rooms/{roomId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidRoom(request.resource.data) && request.resource.data.hostId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.hostId == request.auth.uid || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
+
+      match /players/{playerId} {
+        allow read: if isAuthenticated();
+        allow create: if isOwner(playerId) && isValidPlayer(request.resource.data);
+        allow update: if isOwner(playerId) && isValidPlayer(request.resource.data);
+        allow delete: if isOwner(playerId);
+      }
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}
